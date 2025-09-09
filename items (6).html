@@ -1,0 +1,520 @@
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>S.K Ornaments</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2pdf for client-side PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    body{
+      font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: linear-gradient(135deg,#fffaf0 0%,#fff0b3 50%,#ffec99 100%);
+      min-height:100vh;
+    }
+    .glass{backdrop-filter:blur(12px);background:rgba(255,255,255,0.85)}
+    .print-area {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+      transform-origin: top center;
+      page-break-after: avoid;
+    }
+    .print-area::before{
+      content:"S.K Ornaments";
+      position:absolute;top:30%;left:45%;transform:translate(-50%,-50%);
+      font-size:4rem;font-weight:800;color:rgba(212,175,55,0.08);white-space:nowrap;pointer-events:none
+    }
+    #invoice>*{position:relative;z-index:1}
+    @media print{
+      body{background:#fff!important}
+      .no-print{display:none!important}
+      .print-area::before{color:rgba(212,175,55,0.06)}
+    }
+    .fade-in{animation:fade .45s ease both}
+    @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    #duePrev { color: red; }
+    #depPrev { color: green; }
+    #previewDuePrev { color: red; }
+    #previewDepPrev { color: green; }
+    #fine { color: red; }
+  </style>
+</head>
+
+<body class="text-gray-800">
+
+<!-- 🔒 Lock Screen -->
+<div id="lockScreen" style="display:flex;align-items:center;justify-content:center;height:100vh;background:#f9f9f9;">
+  <div style="padding:20px;border:1px solid #ccc;border-radius:10px;background:white;box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+    <h2 style="margin-bottom:10px;text-align:center;">🔒 Login</h2>
+    
+    <form onsubmit="checkPassword(); return false;" style="display:flex;flex-direction:column;gap:10px;">
+      <input id="siteUsername" type="text" name="username" placeholder="Username" autocomplete="username" required
+             style="padding:8px;width:200px;border:1px solid #ccc;border-radius:5px;">
+      <input id="sitePassword" type="password" name="password" placeholder="Password" autocomplete="current-password" required
+             style="padding:8px;width:200px;border:1px solid #ccc;border-radius:5px;">
+      <button type="submit" style="padding:8px 15px;border:none;background:#4CAF50;color:white;border-radius:5px;">
+        Unlock
+      </button>
+    </form>
+    <p id="errorMsg" style="color:red;text-align:center;display:none;">Wrong username or password!</p>
+  </div>
+</div>
+
+<!-- 🔓 Real Website Content -->
+<div id="siteContent" style="display:none;">
+
+<header class="no-print sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="bg-yellow-500 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white">SK</div>
+      <div>
+        <h1 class="text-xl font-extrabold tracking-tight">S.K Ornaments</h1>
+        <p class="text-xs text-gray-500 -mt-0.5">Order items invoice!</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button id="downloadPdfTop" class="px-3 py-1.5 rounded-xl bg-yellow-500 text-white">Download PDF</button>
+      <button id="printTop" class="px-3 py-1.5 rounded-xl border border-gray-300">Print</button>
+      <button id="sendWhatsTop" class="px-3 py-1.5 rounded-xl bg-green-600 text-white">Send to WhatsApp</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-2 gap-6">
+  <!-- Left: Controls/Form -->
+  <section class="glass rounded-3xl p-5 shadow-xl fade-in">
+    <h2 class="text-lg font-bold mb-4">Invoice Details</h2>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium">Invoice Date</label>
+        <input id="invDate" type="date" class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Invoice No.</label>
+        <input id="invNumber" type="text" class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium">Select Customer</label>
+        <select id="customerSelect" class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200">
+          <option value="">-- Select Customer --</option>
+          <option value="7248455085">Pankaj(K.J)</option>
+          <option value="7248400486">S.A.B</option>
+          <option value="9760007076">Nirankari (G.R)</option>
+          <option value="9568620002">L.N.J</option>
+          <option value="9997677022">A.J</option>
+          <option value="9193229076">Naveen (K.J)</option>
+          <option value="9411294499">N.P.J</option>
+          <option value="8979803416">N.K.J</option>
+          <option value="78955 27710">Alankar J.W (A.D)</option>
+          <option value="97197 67018">M.J</option>
+          <option value="89674 88298">U.J</option>
+          <option value="98971 47315">S.H.J</option>
+          <option value="7253993242">Dheeraj (K.J)</option>
+        </select>
+      </div>
+
+      <!-- Custom customer fields -->
+      <div id="customCustomerFields" class="sm:col-span-2 hidden">
+        <label class="block text-sm font-medium">Custom Customer Name</label>
+        <input id="customCustomerName" type="text" placeholder="Enter customer name"
+               class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+        <label class="block text-sm font-medium mt-3">Mobile Number</label>
+        <input id="customCustomerPhone" type="text" placeholder="Enter mobile number"
+               class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Old Due Balance (Fine Gold)</label>
+        <input id="oldDue" type="number" step="0.001" placeholder="e.g., 3.250" class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Deposit Gold</label>
+        <input id="oldDep" type="number" step="0.001" placeholder="e.g., 3.250" class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Gold Rate (₹/g)</label>
+        <input id="goldRate" type="number" step="0.01" placeholder="e.g., 6000"
+               class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Deposit Cash (₹)</label>
+        <input id="cashDep" type="number" step="0.01" placeholder="e.g., 5000"
+               class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200" />
+      </div>
+    </div>
+
+    <hr class="my-5" />
+
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="font-semibold">Items (editable inline)</h3>
+      <div class="flex gap-2">
+        <button id="addRow" class="px-3 py-1.5 rounded-xl bg-yellow-500 text-white">Add Item</button>
+        <button id="clearRows" class="px-3 py-1.5 rounded-xl border">Clear All</button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto rounded-2xl border border-gray-200">
+      <table class="min-w-full text-sm" id="itemsTable">
+        <thead class="bg-gray-50">
+          <tr class="text-left">
+            <th class="px-3 py-2">#</th>
+            <th class="px-3 py-2">Item Name</th>
+            <th class="px-3 py-2">Pieces</th>
+            <th class="px-3 py-2">Net Wt. (g)</th>
+            <th class="px-3 py-2">Gold Less (g)</th>
+            <th class="px-3 py-2">Taungh %</th>
+            <th class="px-3 py-2">Fine Gold (g)</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 text-right">
+      <p class="text-sm">Grand Total Fine Gold: <span id="totalFine" class="font-bold">0.000 g</span></p>
+      <p class="text-sm">Old Due Balance: <span id="duePrev">0.000 g</span></p>
+      <p class="text-sm">Deposit: <span id="depPrev">0.000 g</span></p>
+      <p class="text-lg font-extrabold">New Balance: <span id="newBalance">0.000 g / ₹0.00</span></p>
+    </div>
+  </section>
+
+  <!-- Right: Preview -->
+  <section class="rounded-3xl fade-in">
+    <div id="invoice" class="print-area rounded-3xl shadow-2xl border border-gray-200 mx-auto p-8">
+      <div id="invoice-content">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-2xl font-extrabold">S.K Ornaments</h2>
+            <p class="text-sm text-gray-600">Gold Jewellery Works</p>
+          </div>
+          <div class="text-right">
+            <p><span class="text-gray-500">Invoice No:</span> <span id="previewInvNumber"></span></p>
+            <p><span class="text-gray-500">Date:</span> <span id="previewDate"></span></p>
+          </div>
+        </div>
+
+        <hr class="my-6" />
+
+        <div>
+          <h3 class="text-sm font-semibold">Bill To</h3>
+          <p id="previewCustomer" class="font-medium">—</p>
+          <p id="previewCustomerPhone" class="text-sm text-gray-600">—</p>
+        </div>
+
+        <div class="mt-6">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="border px-3 py-2 text-left">#</th>
+                <th class="border px-3 py-2 text-left">Item</th>
+                <th class="border px-3 py-2 text-right">Pcs</th>
+                <th class="border px-3 py-2 text-right">Net (g)</th>
+                <th class="border px-3 py-2 text-right">Less (g)</th>
+                <th class="border px-3 py-2 text-right">Taungh %</th>
+                <th class="border px-3 py-2 text-right">Fine (g)</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 text-right">
+          <p>Total Fine Gold: <span id="previewTotalFine" class="font-bold">0.000 g</span></p>
+          <p>Old Due Balance: <span id="previewDuePrev">0.000 g</span></p>
+          <p>Deposit: <span id="previewDepPrev">0.000 g</span></p>
+          <p class="text-lg font-extrabold">New Balance: <span id="previewNewBalance">0.000 g / ₹0.00</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const customers = [
+    { name: 'Pankaj (K.J)', phone: '+917248455085' },
+    { name: 'S.A.B', phone: '+917248400486' },
+    { name:'Nirankari (G.R)', phone: '+919760007076' },
+    { name:'L.N.J', phone: '+919568620002' },
+    { name:'A.J', phone: '+919997677022' },
+    { name:'Naveen (K.J)', phone: '+919193229076' },
+    { name:'N.P.J', phone: '+919411294499' },
+    { name:'N.K.J', phone: '+918979803416' },
+    { name: 'Alankar J.W (A.D)', phone: '+917895527710' },
+    { name: 'M.J', phone: '+9197197 67018' },
+    { name: 'U.J', phone: '+9189674 88298' },
+    { name: 'S.H.J', phone: '+919897147315' },
+    { name: 'Dheeraj (K.J)', phone: '+917253993242' }
+  ];
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const fmt = (n) => (isFinite(n) ? Number(n).toFixed(3) : '0.000');
+
+  function computeFine(net, less, taungh) {
+    const n = parseFloat(net) || 0;
+    const l = parseFloat(less) || 0;
+    const t = parseFloat(taungh) || 0;
+    return Math.max(0, n - l) * (t / 100);
+  }
+
+  function updateTotals() {
+    let total = 0;
+    $$('#tbody tr').forEach((tr) => (total += parseFloat(tr.dataset.fine || 0)));
+
+    $('#totalFine').textContent = fmt(total) + ' g';
+    $('#previewTotalFine').textContent = fmt(total) + ' g';
+
+    const oldDue = parseFloat($('#oldDue').value) || 0;
+    const oldDep = parseFloat($('#oldDep').value) || 0;
+    const cashDep = parseFloat($('#cashDep').value) || 0;
+    const goldRate = parseFloat($('#goldRate').value) || 0;
+
+    let cashAsGold = 0;
+    if (cashDep > 0 && goldRate > 0) {
+      cashAsGold = cashDep / goldRate;
+    }
+
+    $('#duePrev').textContent = fmt(oldDue) + ' g';
+    $('#depPrev').textContent = fmt(oldDep) + ' g + ' + fmt(cashAsGold) + ' g (cash)';
+    $('#previewDuePrev').textContent = fmt(oldDue) + ' g';
+    $('#previewDepPrev').textContent = fmt(oldDep) + ' g + ' + fmt(cashAsGold) + ' g (cash)';
+
+    const newBalGrams = oldDue + total - oldDep - cashAsGold;
+    const newBalCash = goldRate > 0 ? newBalGrams * goldRate : 0;
+
+    $('#newBalance').textContent = fmt(newBalGrams) + ' g / ₹' + newBalCash.toFixed(2);
+    $('#previewNewBalance').textContent = fmt(newBalGrams) + ' g / ₹' + newBalCash.toFixed(2);
+  }
+
+  function makeRow(idx) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class='px-3 py-2'>${idx}</td>
+      <td class='px-3 py-2'><input placeholder='Item name (optional)' class='w-full border rounded px-2 py-1' /></td>
+      <td class='px-3 py-2'><input type='number' min='0' step='1' placeholder='0' class='w-20 border rounded px-2 text-right' /></td>
+      <td class='px-3 py-2'><input type='number' step='0.001' placeholder='0.000' class='w-28 border rounded px-2 text-right' /></td>
+      <td class='px-3 py-2'><input type='number' step='0.001' placeholder='0.000' class='w-28 border rounded px-2 text-right' /></td>
+      <td class='px-3 py-2'><input type='number' step='0.001' placeholder='92' class='w-20 border rounded px-2 text-right' /></td>
+      <td class='px-3 py-2 text-right font-semibold'>0.000</td>
+      <td class='px-3 py-2 text-right'><button class='remove text-red-600'>✕</button></td>`;
+    const inputs = $$('input', tr);
+    const fineCell = $$('td', tr)[6];
+    function recalc() {
+      const fine = computeFine(inputs[2].value, inputs[3].value, inputs[4].value);
+      tr.dataset.fine = fine;
+      fineCell.textContent = fmt(fine);
+      syncPreview();
+    }
+    inputs.forEach((i) => i.addEventListener('input', recalc));
+    tr.querySelector('.remove').addEventListener('click', () => {
+      tr.remove();
+      renumber();
+      syncPreview();
+    });
+    return tr;
+  }
+
+  function renumber() {
+    $$('#tbody tr').forEach((tr, i) => (tr.firstElementChild.textContent = i + 1));
+    updateTotals();
+  }
+
+  function syncPreview() {
+    $('#previewInvNumber').textContent = $('#invNumber').value || '—';
+    $('#previewDate').textContent = $('#invDate').value || '—';
+
+    let customerName = '';
+    let customerPhone = '';
+    const selVal = $('#customerSelect').value;
+
+    if (selVal === "other") {
+      $('#customCustomerFields').classList.remove('hidden');
+      customerName = $('#customCustomerName').value || '—';
+      customerPhone = $('#customCustomerPhone').value || '—';
+    } else {
+      $('#customCustomerFields').classList.add('hidden');
+      const selIndex = $('#customerSelect').selectedIndex;
+      const selected = customers[selIndex - 1] || { name: '', phone: '' };
+      customerName = selected.name || $('#customerSelect').selectedOptions[0]?.text || '—';
+      customerPhone = selected.phone || '';
+    }
+
+    $('#previewCustomer').textContent = customerName;
+    $('#previewCustomerPhone').textContent = customerPhone;
+
+    const pb = $('#previewBody');
+    pb.innerHTML = '';
+    $$('#tbody tr').forEach((tr, i) => {
+      const vals = $$('input', tr).map((el) => el.value);
+      const fine = fmt(parseFloat(tr.dataset.fine || 0));
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class='border px-3 py-2'>${i + 1}</td>
+        <td class='border px-3 py-2'>${vals[0] || '-'}</td>
+        <td class='border px-3 py-2 text-right'>${vals[1] || '-'}</td>
+        <td class='border px-3 py-2 text-right'>${vals[2] || '0.000'}</td>
+        <td class='border px-3 py-2 text-right'>${vals[3] || '0.000'}</td>
+        <td class='border px-3 py-2 text-right'>${vals[4] || '0'}</td>
+        <td class='border px-3 py-2 text-right'>${fine}</td>`;
+      pb.appendChild(row);
+    });
+    updateTotals();
+  }
+
+  function buildWhatsAppText() {
+    const lines = [];
+    lines.push('S.K Ornaments — Invoice');
+    lines.push('');
+    lines.push('Customer: ' + ($('#previewCustomer').textContent || '—'));
+    lines.push('Phone: ' + ($('#previewCustomerPhone').textContent || '—'));
+    lines.push('Invoice No: ' + ($('#previewInvNumber').textContent || '—'));
+    lines.push('Date: ' + ($('#previewDate').textContent || '—'));
+    lines.push('');
+    lines.push('Items:');
+    $$('#tbody tr').forEach((tr, i) => {
+      const vals = $$('input', tr).map((el) => el.value);
+      const fine = fmt(parseFloat(tr.dataset.fine || 0));
+      const itemLine = `${i+1}. ${vals[0]||'Item'} | ${vals[1]||'-'} pcs | Net: ${vals[2]||'0.000'}g | Less: ${vals[3]||'0.000'}g | Taungh: ${vals[4]||'0'}% | Fine: ${fine}g`;
+      lines.push(itemLine);
+    });
+    lines.push('');
+    const oldDue = fmt(parseFloat($('#oldDue').value) || 0);
+    lines.push('Old Due Balance: ' + oldDue + ' g');
+    const oldDep = fmt(parseFloat($('#oldDep').value) || 0);
+    const cashDep = parseFloat($('#cashDep').value) || 0;
+    const goldRate = parseFloat($('#goldRate').value) || 0;
+    let cashAsGold = (cashDep > 0 && goldRate > 0) ? cashDep / goldRate : 0;
+    lines.push('Deposit Balance: ' + oldDep + ' g + ' + fmt(cashAsGold) + ' g (cash)');
+    const totalFine = $('#totalFine').textContent.replace(' g','') || '0.000';
+    lines.push('Grand Total Fine Gold: ' + totalFine + ' g');
+    const newBal = $('#newBalance').textContent;
+    lines.push('New Balance: ' + newBal);
+
+    return lines.join('\n');
+  }
+
+  (function init(){
+    const sel = $('#customerSelect');
+    sel.innerHTML = '<option value="">-- Select Customer --</option>';
+    customers.forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c.phone;
+      opt.textContent=c.name;
+      sel.appendChild(opt);
+    });
+    const otherOpt=document.createElement('option');
+    otherOpt.value="other";
+    otherOpt.textContent="Other (Custom)";
+    sel.appendChild(otherOpt);
+
+    const today=new Date();
+    $('#invDate').valueAsDate=today;
+    $('#invNumber').value=`SKO-${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${String(today.getHours()).padStart(2,'0')}${String(today.getMinutes()).padStart(2,'0')}`;
+
+    $('#tbody').appendChild(makeRow(1));
+    syncPreview();
+
+    $('#addRow').addEventListener('click', ()=>{ $('#tbody').appendChild(makeRow($$('#tbody tr').length+1)); });
+    $('#clearRows').addEventListener('click', ()=>{ if(confirm('Clear all items?')){ $('#tbody').innerHTML=''; $('#tbody').appendChild(makeRow(1)); syncPreview(); } });
+
+    ['invDate','invNumber','customerSelect','customCustomerName','customCustomerPhone','oldDue','oldDep','cashDep','goldRate']
+      .forEach(id=>{ $('#'+id).addEventListener('input', syncPreview); });
+
+    $('#downloadPdfTop').addEventListener('click', ()=> downloadPdfAndThen());
+    $('#printTop').addEventListener('click', ()=> window.print());
+
+    function sendToWhatsAppFlow(){
+      let phone = $('#previewCustomerPhone').textContent || '';
+      phone = phone.replace(/[^0-9+]/g,'');
+      if(!phone){
+        alert('Please enter a valid phone number before sending to WhatsApp.');
+        return;
+      }
+      let raw = phone;
+      if(raw.startsWith('+')) raw = raw.slice(1);
+      if(raw.length === 10) raw = '91' + raw;
+
+      downloadPdfAndThen(()=>{
+        const text = encodeURIComponent(buildWhatsAppText());
+        const waUrl = `https://wa.me/${raw}?text=${text}`;
+        window.open(waUrl, '_blank');
+      });
+    }
+
+    $('#sendWhatsTop').addEventListener('click', sendToWhatsAppFlow);
+    window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); downloadPdfAndThen(); } });
+  })();
+
+  function buildFilename(){
+    const now = new Date();
+    const datePart = String(now.getDate()).padStart(2,"0") + String(now.getMonth()+1).padStart(2,"0") + now.getFullYear();
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2,"0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12; hours = hours ? hours : 12;
+    const timePart = String(hours).padStart(2,"0") + minutes + ampm;
+    let custName = document.getElementById("previewCustomer").textContent || "Customer";
+    custName = custName.trim().replace(/\s+/g,"-").replace(/[^a-zA-Z0-9_-]/g,"");
+    return `INV_${datePart}_${timePart}_${custName}.pdf`;
+  }
+
+  function downloadPdfAndThen(openAfter) {
+    const filename = buildFilename();
+    const inv = document.getElementById("invoice");
+    const content = document.getElementById("invoice-content");
+    const opt = {
+      margin: 0,
+      filename: filename,
+      image: { type: "jpeg", quality: 1 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: [] }
+    };
+    content.style.transform = "";
+    content.style.transformOrigin = "top center";
+    const contentWidthMm = content.scrollWidth * 0.264583;
+    const contentHeightMm = content.scrollHeight * 0.264583;
+    const boxWidthMm = 210, boxHeightMm = 297;
+    const scale = Math.min(boxWidthMm / contentWidthMm, boxHeightMm / contentHeightMm, 1);
+    content.style.transform = `scale(${scale})`;
+    return html2pdf().set(opt).from(inv).save().then(() => {
+      content.style.transform = "";
+      if (typeof openAfter === "function") openAfter();
+    });
+  }
+</script>
+
+<script>
+  const correctUsername = "admin";
+  const correctPassword = "admin1234";
+  function checkPassword() {
+    const user = document.getElementById("siteUsername").value;
+    const pass = document.getElementById("sitePassword").value;
+    if (user === correctUsername && pass === correctPassword) {
+      localStorage.setItem("siteUnlocked", "true");
+      document.getElementById("lockScreen").style.display = "none";
+      document.getElementById("siteContent").style.display = "block";
+    } else {
+      document.getElementById("errorMsg").style.display = "block";
+    }
+  }
+  window.addEventListener("load", () => {
+    if (localStorage.getItem("siteUnlocked") === "true") {
+      document.getElementById("lockScreen").style.display = "none";
+      document.getElementById("siteContent").style.display = "block";
+    }
+  });
+</script>
+</div>
+</body>
+</html
